@@ -3,5 +3,5 @@
     "channelAccessToken":"YOUR_LINEBOT_CHANNEL_ACCESS_TOKEN",
     "channelSecret":"YOUR_LINEBOT_CHANNEL_SECRET"
   },
-  "serverPort": 8001
+  "serverPort": 8003
 }

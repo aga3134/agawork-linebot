@@ -1,6 +1,5 @@
 const line = require('@line/bot-sdk');
 const axios = require('axios');
-const querystring = require('querystring');
 const fs = require('fs'); 
 const Config = require('../../config');
 const client = new line.Client(Config.linebot);
@@ -86,7 +85,8 @@ lc.HandleEvent = function(event){
     }
   }
   else if(event.type == 'postback'){
-    console.log(event.postback.data);
+    let data = new URLSearchParams(event.postback.data);
+    console.log(data);
   }
   else{
     return Promise.resolve(null);

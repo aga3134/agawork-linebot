@@ -3,5 +3,6 @@
     "channelAccessToken":"YOUR_LINEBOT_CHANNEL_ACCESS_TOKEN",
     "channelSecret":"YOUR_LINEBOT_CHANNEL_SECRET"
   },
+  "agaworkHost":"https://agawork.tw",
   "serverPort": 8003
 }

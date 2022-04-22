@@ -145,13 +145,13 @@ lc.HandleEvent = function(event){
         let reqText = event.message.text;
         //check if message match a name in category
         let key = '';
-        let reply = '';
+        let desc = '';
         for(let i=0;i<result.timeCategory.length;i++){
           if(key != '') break;
           let cat = result.timeCategory[i];
           if(reqText == cat.name){
             key = 'time';
-            reply = cat.desc;
+            desc = cat.desc;
           }
         }
         for(let i=0;i<result.issueCategory.length;i++){
@@ -159,7 +159,7 @@ lc.HandleEvent = function(event){
           let cat = result.issueCategory[i];
           if(reqText == cat.name){
             key = 'issue';
-            reply = cat.desc;
+            desc = cat.desc;
           }
         }
         for(let i=0;i<result.skillCategory.length;i++){
@@ -167,23 +167,93 @@ lc.HandleEvent = function(event){
           let cat = result.skillCategory[i];
           if(reqText == cat.name){
             key = 'skill';
-            reply = cat.desc;
+            desc = cat.desc;
           }
         }
         if(key == ''){  //查無專案類別
-          reply = 'Agawork目前沒有相關專案，若有合作需求，請直接聯絡到處跳坑的工程師 aga3134@gmail.com';
+          msg.push({ type: 'text', text: 'Agawork目前沒有相關專案，若有合作需求，請直接聯絡到處跳坑的工程師 aga3134@gmail.com'});
         }
         else{
           let projArr = [];
           for(let i=0;i<result.project.length;i++){
             let project = result.project[i];
-            if(reqText in project[key]){
+            if(project[key].includes(reqText)){
               projArr.push(project);
             }
           }
+          //console.log(projArr);
           //add project in flex box
+          let content = [];
+          for(let i=0;i<projArr.length;i++){
+            let project = projArr[i];
+            let linkArr = [];
+            for(let j=0;j<project.link.length;j++){
+              let link = project.link[j];
+              linkArr.push({
+                'type': 'button',
+                'style': 'link',
+                'height': 'sm',
+                'action':{
+                  'type': 'uri',
+                  'label': link.name,
+                  'uri': link.url
+                }
+              });
+            }
+            //console.log(linkArr);
+            content.push({
+              'type': 'bubble',
+              'size': 'kilo',
+              'hero': {
+                'type': 'image',
+                'url': Config.agaworkHost+'/'+project.photo,
+                'size': 'full',
+              },
+              'body':{
+                'type':'box',
+                'layout': 'vertical',
+                'spacing': 'none',
+                'contents':[
+                  {
+                    'type': 'text',
+                    'text': project.name,
+                    'weight': 'bold',
+                    'size': 'md',
+                    'wrap': true
+                  },
+                  {
+                    'type': 'text',
+                    'text': project.desc,
+                    'size': 'sm',
+                    'wrap': true
+                  }
+                ]
+              },
+              'footer':{
+                'type': 'box',
+                'layout': 'vertical',
+                'spacing': 'xs',
+                'contents': linkArr
+              }
+            });
+          }
+          //console.log(content);
+          if(content.length == 0){
+            msg.push({ type: 'text', text: '查無相關專案'});
+          }
+          else{
+            let flexObj = {
+              'type': 'flex',
+              'altText': '這是專案列表',
+              'contents': {
+                'type': 'carousel',
+                'contents': content
+              }
+            };
+            msg.push({ type: 'text', text: desc});
+            msg.push(flexObj);
+          }
         }
-        msg.push({ type: 'text', text: reply});
         client.replyMessage(event.replyToken, msg).catch(err => {
           console.log(err.originalError.response.data);
         });
@@ -194,127 +264,186 @@ lc.HandleEvent = function(event){
       let action = data.get('action');
       //load project content from agawork
       
-      let quickReply = null;
-      let content = [];
-      let flexObj = {};
       switch(action){
       case 'resource':
-        for(let i=0;i<result.resource.length;i++){
-          let resource = result.resource[i];
-          content.push({
-            'type': 'button',
-            'action': {
-              'type': 'uri',
-              'label': resource.name,
-              'uri': resource.url
-            },
-          });
-        }
-        flexObj = {
-          'type': 'flex',
-          'altText': '這是資源列表',
-          'contents':{
-            'type':'bubble',
-            'body':{
-              'type':'box',
-              'layout':'vertical',
-              'contents':content
-            }
-          }
-        };
-        msg.push(flexObj);
-        break;
-      case 'about':
-        break;
-      case 'partner':
-        for(let shape in result.partner){
-          for(let i=0;i<result.partner[shape].length;i++){
-            let partner = result.partner[shape][i];
+        {
+          let content = [];
+          for(let i=0;i<result.resource.length;i++){
+            let resource = result.resource[i];
             content.push({
-              'type': 'box',
-              'layout':'horizontal',
-              'alignItems': 'center',
-              'contents':[
-                {
-                  'type': 'image',
-                  'url': Config.agaworkHost+'/'+partner.url
-                },
-                {
-                  'type': 'text',
-                  'text': partner.name
-                },
-              ],
+              'type': 'button',
               'action': {
                 'type': 'uri',
-                'label': partner.name,
-                'uri': partner.link
+                'label': resource.name,
+                'uri': resource.url
+              },
+            });
+          }
+          let flexObj = {
+            'type': 'flex',
+            'altText': '這是資源列表',
+            'contents':{
+              'type':'bubble',
+              'body':{
+                'type':'box',
+                'layout':'vertical',
+                'contents':content
+              }
+            }
+          };
+          msg.push(flexObj);
+        }
+        break;
+      case 'about':
+        {
+          let hero = {
+            'type': 'image',
+            'url': Config.agaworkHost+'/'+result.about.photo,
+            'size': 'full'
+          };
+          let body = {
+            'type': 'box',
+            'layout': 'vertical',
+            'contents':[
+              {
+                'type': 'text',
+                'wrap': true,
+                'text': result.about.desc
+              }
+            ]
+          };
+          let content = [];
+          for(let i=0;i<result.about.link.length;i++){
+            let link = result.about.link[i];
+            content.push({
+              'type': 'button',
+              'style': 'link',
+              'height': 'sm',
+              'action':{
+                'type': 'uri',
+                'label': link.name,
+                'uri': link.url
               }
             });
           }
+          let footer = {
+            'type': 'box',
+            'layout': 'vertical',
+            'spacing': 'xs',
+            'contents': content
+          };
+          let flexObj = {
+            'type': 'flex',
+            'altText': '這是關於Agawork',
+            'contents':{
+              'type':'bubble',
+              'hero': hero,
+              'body': body,
+              'footer': footer
+            }
+          };
+          msg.push(flexObj);
         }
-        //console.log(content);
-        
-        flexObj = {
-          'type': 'flex',
-          'altText': '這是夥伴列表',
-          'contents':{
-            'type':'bubble',
-            'body':{
-              'type':'box',
-              'layout':'vertical',
-              'contents':content
+        break;
+      case 'partner':
+        {
+          let content = [];
+          for(let shape in result.partner){
+            for(let i=0;i<result.partner[shape].length;i++){
+              let partner = result.partner[shape][i];
+              content.push({
+                'type': 'box',
+                'layout':'horizontal',
+                'alignItems': 'center',
+                'spacing': 'xs',
+                'contents':[
+                  {
+                    'type': 'image',
+                    'url': Config.agaworkHost+'/'+partner.url
+                  },
+                  {
+                    'type': 'text',
+                    'text': partner.name
+                  },
+                ],
+                'action': {
+                  'type': 'uri',
+                  'label': partner.name,
+                  'uri': partner.link
+                }
+              });
             }
           }
-        };
-        msg.push(flexObj);
+          //console.log(content);
+          
+          let flexObj = {
+            'type': 'flex',
+            'altText': '這是夥伴列表',
+            'contents':{
+              'type':'bubble',
+              'body':{
+                'type':'box',
+                'layout':'vertical',
+                'contents':content
+              }
+            }
+          };
+          msg.push(flexObj);
+        }
         break;
       case 'contact':
         msg.push({ type: 'text', text: '請直接寄email至 aga3134@gmail.com'});
         break;
       case 'sortByTime':
-        quickReply = {items:[]};
-        for(let i=0;i<result.timeCategory.length;i++){
-          let cat = result.timeCategory[i];
-          quickReply.items.push({
-            'type': 'action',
-            'action':{
-              'type':'message',
-              'label':cat.name,
-              'text':cat.name
-            }
-          });
+        {
+          let quickReply = {items:[]};
+          for(let i=0;i<result.timeCategory.length;i++){
+            let cat = result.timeCategory[i];
+            quickReply.items.push({
+              'type': 'action',
+              'action':{
+                'type':'message',
+                'label':cat.name,
+                'text':cat.name
+              }
+            });
+          }
+          msg.push({ type: 'text', text: '請選擇不同時期的專案',quickReply:quickReply});
         }
-        msg.push({ type: 'text', text: '請選擇不同時期的專案',quickReply:quickReply});
         break;
       case 'sortByIssue':
-        quickReply = {items:[]};
-        for(let i=0;i<result.issueCategory.length;i++){
-          let cat = result.issueCategory[i];
-          quickReply.items.push({
-            'type': 'action',
-            'action':{
-              'type':'message',
-              'label':cat.name,
-              'text':cat.name
-            }
-          });
+        {
+          let quickReply = {items:[]};
+          for(let i=0;i<result.issueCategory.length;i++){
+            let cat = result.issueCategory[i];
+            quickReply.items.push({
+              'type': 'action',
+              'action':{
+                'type':'message',
+                'label':cat.name,
+                'text':cat.name
+              }
+            });
+          }
+          msg.push({ type: 'text', text: '請選擇不同議題的專案',quickReply:quickReply});
         }
-        msg.push({ type: 'text', text: '請選擇不同議題的專案',quickReply:quickReply});
         break;
       case 'sortBySkill':
-        quickReply = {items:[]};
-        for(let i=0;i<result.skillCategory.length;i++){
-          let cat = result.skillCategory[i];
-          quickReply.items.push({
-            'type': 'action',
-            'action':{
-              'type':'message',
-              'label':cat.name,
-              'text':cat.name
-            }
-          });
+        {
+          let quickReply = {items:[]};
+          for(let i=0;i<result.skillCategory.length;i++){
+            let cat = result.skillCategory[i];
+            quickReply.items.push({
+              'type': 'action',
+              'action':{
+                'type':'message',
+                'label':cat.name,
+                'text':cat.name
+              }
+            });
+          }
+          msg.push({ type: 'text', text: '請選擇不同技能的專案',quickReply:quickReply});
         }
-        msg.push({ type: 'text', text: '請選擇不同技能的專案',quickReply:quickReply});
         break;
       }
       //console.log(msg);
